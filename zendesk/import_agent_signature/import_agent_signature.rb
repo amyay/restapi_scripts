@@ -1,19 +1,16 @@
 #!/usr/bin/env ruby
 
 require 'csv'
-require './case.rb'
-require './user.rb'
-require './message.rb'
-require './string_extension.rb'
 require 'curb'
 require 'json'
+require '../config.rb'
 
 useremail = "amy@zendesk.com"
 
-c = Curl::Easy.new ("https://trial.zendesk.com/api/v2/users/search.json?query=%22"+useremail+"%22")
+c = Curl::Easy.new ("https://#{SUBDOMAIN}.zendesk.com/api/v2/users/search.json?query=%22#{useremail}%22")
 c.http_auth_types = :basic
-c.username = "amy.tester.a001@gmail.com"
-c.password = "testmen0w"
+c.username = EMAIL
+c.password = PASSWORD
 c.headers['Content-Type'] = "application/json"
 c.verbose = true
 c.http_get
@@ -25,7 +22,7 @@ userid = c.body_str.match(/{\"users\":\[\{\"id\":([^\/.]*),/)[1]
 
 # puts "user id = " + userid
 
-targeturl = "https://trial.zendesk.com/api/v2/users/"+userid+".json"
+targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/users/#{userid}.json"
 data = '{"user":{"signature":"script file signature 03\rthis is a new line\r\r\rthis is another line after some empty carriage return!"}}'
 
 c.url = targeturl
