@@ -60,16 +60,16 @@ ticket_ids.each_slice(100) do |section_ids|
 
   # puts ids_join
 
-  # targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/tickets/destroy_many.json?ids=#{ids_join}"
-  # c.url = targeturl
-  # c.http_delete
-  # results = JSON.parse (c.body_str)
-  # if !results["error"].nil?
-  #   puts "ERROR: problems with deletion of tickets"
-  #   puts "Error description: #{results["description"]}"
-  #   puts "Error details: #{results["details"]["base"][0]["description"]}"
-  #   error_count += 1
-  # end
+  targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/tickets/destroy_many.json?ids=#{ids_join}"
+  c.url = targeturl
+  c.http_delete
+  results = JSON.parse (c.body_str)
+  if !results["error"].nil?
+    puts "ERROR: problems with deletion of tickets"
+    puts "Error description: #{results["description"]}"
+    puts "Error details: #{results["details"]["base"][0]["description"]}"
+    error_count += 1
+  end
 
   # reset ids_join
   ids_join = ""

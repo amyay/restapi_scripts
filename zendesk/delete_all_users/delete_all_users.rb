@@ -52,17 +52,34 @@ end while next_page
 # puts user_ids
 # puts user_ids.count
 
+# now prompts for user to delete all users
+puts 'are you sure you are ready delete all users (except account owner)? (y/n)'
+user_input = gets.chomp
+
+if !(user_input.downcase == 'y' || user_input.downcase == 'yes')
+  abort('abort user deletion!!')
+end
+
+puts 'what is the user ID of the owner of this zendesk account?'
+owner_id = gets.chomp
+
+
 # iterate for deletion
-# user_ids.each do |id|
-#   targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/users/#{id}.json"
-#  # puts targeturl
-#   c.url = targeturl
-#   c.http_delete
-#   results = JSON.parse (c.body_str)
-#   if !results["error"].nil?
-#     puts "ERROR: cannot delete user ID #{id}"
-#     puts "Error description: #{results["description"]}"
-#     puts "Error details: #{results["details"]["base"][0]["description"]}"
-#     error_count += 1
-#   end
-# end
+user_ids.each do |id|
+  if id == owner_id.to_i
+    puts "owner id #{id} found - not deleted"
+    next
+  end
+
+  targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/users/#{id}.json"
+ # puts targeturl
+  c.url = targeturl
+  c.http_delete
+  results = JSON.parse (c.body_str)
+  if !results["error"].nil?
+    puts "ERROR: cannot delete user ID #{id}"
+    puts "Error description: #{results["description"]}"
+    puts "Error details: #{results["details"]["base"][0]["description"]}"
+    error_count += 1
+  end
+end
