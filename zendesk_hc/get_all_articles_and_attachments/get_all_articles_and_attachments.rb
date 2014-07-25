@@ -1,8 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'csv'
-require 'curb'
+require 'd'
 require 'json'
+require 'open-uri'
 require '../config.rb'
 
 # get a list of tickets in zendesk account
@@ -48,22 +49,16 @@ begin
 
 end while next_page
 
-# puts article_ids
-# puts article_ids.count
+puts article_ids
+puts article_ids.count
 
 # now, iterate thru the array and grab each individual article, as well as its attachments
 article_ids.each do |id|
-  # find out the number of translations available for this article
-  targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/help_center/articles/#{id}/translations.json"
-  c.url = targeturl
-  c.http_get
-  results = JSON.parse (c.body_str)
-
-  translation_list = results["translations"]
-  locale_list = Array.new
+puts "\n#{id}\n"
 
   # now grab individual article
   targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/help_center/articles/#{id}/translations.json"
+  c.url = targeturl
   c.http_get
   results = JSON.parse (c.body_str)
   # create an output file
@@ -71,7 +66,37 @@ article_ids.each do |id|
   outfile << results
   outfile.close
 
+  # get attachment for each individual article
+  targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/help_center/articles/#{id}/translations.json"
+  c.url = targeturl
+  c.http_get
+  results = JSON.parse (c.body_str)
+  article_attachments = results["article_attachments"]
+  if !article_attachments.nil?
+    tempcount = 0
+    article_attachments.each do |aa|
+      tempcount += 1
+      attachment_url = aa["content_url"]
+      # open("./output/#{id}_attachment_#{tempcount}", "wb") do |attachment_file|
+      open("./test_attachment_#{tempcount}", "wb") do |attachment_file|
+        attachment_file << open(attachment_url).read
+      end
+    end
+  end
+
   # get comment for each individual article
+  targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/help_center/articles/#{id}/comments.json"
+  c.url = targeturl
+  c.http_get
+  results = JSON.parse (c.body_str)
+  if results["count"] > 0
+    # create an output file
+    outfile = File.open("./output/#{id}_comments.json", "wb")
+    outfile << results
+    outfile.close
+  end
+
+
 
   # go thru each translation and get the locale
   # translation_list.each do |t|
