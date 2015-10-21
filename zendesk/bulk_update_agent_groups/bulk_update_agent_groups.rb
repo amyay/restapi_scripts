@@ -15,7 +15,7 @@ error_count = 0
 count = 1
 data = nil
 
-csv_filename = "agent_group_test.csv"
+csv_filename = "group_allocation_04.csv"
 
 group_hash = {}
 user_hash = {}
@@ -58,8 +58,8 @@ begin
 end while next_page
 
 # check group_hash
-puts group_hash
-puts group_hash.length
+puts "\nDEBUG: group_hash:\n #{group_hash}"
+puts "DEBUG: group_hash.length: #{group_hash.length}\n\n"
 
 
 # get a list of agents in zendesk account
@@ -100,9 +100,8 @@ begin
 end while next_page
 
 # check group_hash
-puts user_hash
-puts user_hash.length
-
+puts "\nDEBUG: user_hash:\n #{user_hash}"
+puts "DEBUG: user_hash.length: #{user_hash.length}\n\n"
 
 # now read input file for agent_group mapping, and put that in a hash
 # {"user name" ==> ["group1", "group2", "group3"]}
@@ -110,11 +109,17 @@ puts user_hash.length
 CSV.foreach(csv_filename, :headers=>true) do |row|
   # groups = row["Groups"].split(/[\s,]+/)
   groups = row["Groups"].split(/,\s|,/)
+  if orig_agent_group_hash[row["Name"]] != nil
+    puts "***ERROR -- Duplicate User '#{row["Name"]}' in CSV file"
+    next
+  end
   orig_agent_group_hash[row["Name"]] = groups
 end
 
 # check output
-puts orig_agent_group_hash
+puts "\nDEBUG: orig_agent_group_hash:\n #{orig_agent_group_hash}"
+puts "DEBUG: orig_agent_group_hash.length: #{orig_agent_group_hash.length}\n\n"
+
 
 # now recreate the same hash, but use user and group ID instead
 orig_agent_group_hash.each do |a_name, a_groups|
@@ -125,7 +130,7 @@ orig_agent_group_hash.each do |a_name, a_groups|
   user_id = user_hash[a_name]
 
   if user_id == nil
-    puts "ERROR -- User '#{a_name}' does not have a valid user ID"
+    puts "***ERROR -- User '#{a_name}' does not have a valid user ID"
     next
   end
 
@@ -135,7 +140,7 @@ orig_agent_group_hash.each do |a_name, a_groups|
 
     # puts "DEBUG: g = #{g}"
     if group_hash[g] == nil
-      puts "ERROR -- Group '#{g}' does not have a valid group ID"
+      puts "\n***ERROR -- Group '#{g}' does not have a valid group ID"
       next
     end
     group_ids << group_hash[g]
@@ -146,7 +151,9 @@ end
 
 
 # check output
-puts mod_agent_group_hash
+puts "\nDEBUG: mod_agent_group_hash:\n #{mod_agent_group_hash}"
+puts "DEBUG: mod_agent_group_hash.length: #{mod_agent_group_hash.length}\n\n"
+
 
 # now build data for POST command
 
@@ -160,15 +167,16 @@ end
 
 data.chop!
 data << ']}'
-puts data
+puts "\nDEBUG: data:\n #{data}\n\n"
+
 
 
 # now prompts for user to copy all ticket fields
-puts 'are you sure you are ready update agents group membership? (y/n)'
+puts "\nAre you sure you are ready update agents group membership? (y/n)"
 user_input = gets.chomp
 
 if !(user_input.downcase == 'y' || user_input.downcase == 'yes')
-  abort('abort group membership update by user!!')
+  abort("abort group membership update by user!!\n\n\n\n\n")
 end
 
 
@@ -178,6 +186,8 @@ targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/group_memberships/create_ma
   c.url = targeturl
   c.http_post (data)
   results = JSON.parse (c.body_str)
+
+  puts "\nDEBUT: results = #{results}"
   if !results["error"].nil?
     puts "ERROR: problems with adding groups to users"
     puts "Error description: #{results["error"]}"
