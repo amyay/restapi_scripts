@@ -36,9 +36,9 @@ begin
   # within each item in ticket_list, it's a hash, so look for ticket IDs
   ticket_list.each do |t|
     # add checking condition for xero
-    if (t["id"] < 10200)
+    # if (t["id"] < 10200)
       ticket_ids << t["id"]
-    end
+    # end
   end
 
   # prints out list of ticket ID just in case
