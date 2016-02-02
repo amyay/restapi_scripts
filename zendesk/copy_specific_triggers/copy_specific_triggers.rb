@@ -16,6 +16,7 @@ ticket_form_id_hash = Hash.new
 custom_field_id_hash = Hash.new
 group_id_hash = Hash.new
 assignee_id_hash = Hash.new
+created_triggers_hash = Hash.new
 error_count = 0
 count = 1
 data = nil
@@ -114,7 +115,7 @@ specific_trigger_list.each do |t|
       if custom_field_id_hash[all_con["field"]].nil?
         # not present in current hash
         # request for custom field ID mapping
-        puts "please provide mapping for custom ticket field ID #{all_con["field"]}"
+        puts "please provide mapping for #{all_con["field"]}"
         user_input = gets.chomp
         custom_field_id_hash[all_con["field"]] = 'custom_fields_'+user_input
         all_con["field"] = 'custom_fields_'+user_input
@@ -151,7 +152,7 @@ specific_trigger_list.each do |t|
       if custom_field_id_hash[any_con["field"]].nil?
         # not present in current hash
         # request for custom field ID mapping
-        puts "please provide mapping for custom ticket field ID #{any_con["field"]}"
+        puts "please provide mapping for #{any_con["field"]}"
         user_input = gets.chomp
         custom_field_id_hash[any_con["field"]] = 'custom_fields_'+user_input
         any_con["field"] = 'custom_fields_'+user_input
@@ -172,7 +173,7 @@ specific_trigger_list.each do |t|
       if custom_field_id_hash[a["field"]].nil?
         # not present in current hash
         # request for custom field ID mapping
-        puts "please provide mapping for custom ticket field ID #{a["field"]}"
+        puts "please provide mapping for #{a["field"]}"
         user_input = gets.chomp
         custom_field_id_hash[a["field"]] = 'custom_fields_'+user_input
         a["field"] = 'custom_fields_'+user_input
@@ -217,10 +218,6 @@ specific_trigger_list.each do |t|
       end
     end
 
-    #############################
-    ####check for group and assignee ID
-    #############################
-
   end
 
 end
@@ -241,66 +238,78 @@ puts assignee_id_hash
 #################################################
 
 
-# # now prompts for user to copy all ticket fields
-# puts "are you sure you are ready copy these #{specific_custom_ticket_fields.length} custom ticket fields? (y/n)"
-# user_input = gets.chomp
+# now prompts for user to copy all ticket fields
+puts "are you sure you are ready copy these #{specific_trigger_list.length} triggers? (y/n)"
+user_input = gets.chomp
 
-# if !(user_input.downcase == 'y' || user_input.downcase == 'yes')
-#   abort('abort copy of specific custom ticket fields by user!!')
-# end
+if !(user_input.downcase == 'y' || user_input.downcase == 'yes')
+  abort('abort copy of specific custom ticket fields by user!!')
+end
 
-# count = 1
+count = 1
 
-# # set up copying
-# specific_trigger_list.each do |t|
+# set up copying
+specific_trigger_list.each do |t|
 
-# # puts "type = #{tf.type}, title = #{tf.title}"
+  data = "{\"trigger\": {\"title\" : \"#{t.title}\",\"active\": #{t.active},\"position\": #{t.position},\"actions\": ["
 
-#   # skip importing system field
-#   next if (!tf.system_field_options.nil?) || (ignore_types.include? tf.type)
+  # now iterate thru action
+  t.actions.each do |a|
+    if a['field'].include? 'notification_'
+      data << "{\"field\": \"#{a['field']}\", \"value\": #{a['value']}},"
+    else
+      data << "{\"field\": \"#{a['field']}\", \"value\": \"#{a['value']}\"},"
+    end
+  end
+  data.chop!
 
-#   # set up data depending if it's dropdown or not
-#   if tf.type == 'tagger'
-#     data = "{\"ticket_field\": {\"type\": \"#{tf.type}\",\"title\" : \"#{tf.title}\",\"description\": \"#{tf.description}\",\"active\": #{tf.active},\"required\": #{tf.required},\"collapsed_for_agents\": #{tf.collapsed_for_agents},\"regexp_for_validation\": #{tf.regexp_for_validation},\"title_in_portal\": \"#{tf.title_in_portal}\",\"visible_in_portal\": #{tf.visible_in_portal},\"editable_in_portal\": #{tf.editable_in_portal},\"required_in_portal\": #{tf.required_in_portal},\"tag\": #{tf.tag},\"removable\": #{tf.removable},\"custom_field_options\": ["
-#     # now iterate thru custom field options and add all
-#     tf.custom_field_options.each do |cto|
-#       data << "{\"name\": \"#{cto['name']}\", \"value\": \"#{cto['value']}\"},"
-#     end
-#     data.chop!
-#     data << "]}}"
-#   else
-#     data = "{\"ticket_field\": {\"type\": \"#{tf.type}\",\"title\" : \"#{tf.title}\",\"description\": \"#{tf.description}\",\"active\": #{tf.active},\"required\": #{tf.required},\"collapsed_for_agents\": #{tf.collapsed_for_agents},\"regexp_for_validation\": #{tf.regexp_for_validation},\"title_in_portal\": \"#{tf.title_in_portal}\",\"visible_in_portal\": #{tf.visible_in_portal},\"editable_in_portal\": #{tf.editable_in_portal},\"required_in_portal\": #{tf.required_in_portal},\"tag\": #{tf.tag},\"removable\": #{tf.removable}}}\""
-#   end
+  data << "],\"conditions\": {\"all\": ["
 
-# puts "\n\n#{data}\n\n"
+  # now iterate thru conditions
+  # meet any conditions
+  t.conditions["all"].each do |all_con|
+    data << "{\"field\": \"#{all_con['field']}\", \"operator\": \"#{all_con['operator']}\", \"value\": \"#{all_con['value']}\"},"
+  end
 
-#   targeturl = "https://#{DESTINATION_SUBDOMAIN}.zendesk.com/api/v2/ticket_fields.json"
-#   c.username = DESTINATION_EMAIL
-#   c.password = DESTINATION_PASSWORD
-#   c.url = targeturl
-#   c.http_post (data)
-#   results = JSON.parse (c.body_str)
-#   if !results["error"].nil?
-#     puts "ERROR: problems with adding custom ticket field"
-#     puts "Error description: #{results["error"]}"
-#     puts "Error details: #{results["message"]}\n"
-#     error_count += 1
-#   else
-#     created_ticket_field_ids << results["ticket_field"]["id"]
-#     created_ticket_field_names << results["ticket_field"]["title"]
-#   end
+  data.chop! if t.conditions["all"].length > 0
+  data << "], \"any\": ["
 
-#   count += 1
-# #   break if count == 3
-# end
+  # meet all  conditions
+  t.conditions["any"].each do |any_con|
+    data << "{\"field\": \"#{any_con['field']}\", \"operator\": \"#{any_con['operator']}\", \"value\": \"#{any_con['value']}\"},"
+  end
 
-# # puts "\n\n***************************************\n#{created_ticket_field_ids.count} custom ticket fields CREATED : #{created_ticket_field_ids.inspect}\n"
-
-# puts "\n\n***************************************\n#{created_ticket_field_ids.count} custom ticket fields CREATED : \n"
-# puts " created custom field ID | name of custom field"
-# created_ticket_field_ids.zip(created_ticket_field_names).each do |id, name|
-#   puts "      #{id}           | #{name}"
-# end
+  data.chop! if t.conditions["any"].length > 0
+  data << "]}}}"
 
 
-# puts "\n\n***************************************\n#{error_count} ERRORS DETECTED - please check log for details\n\n" if error_count > 0
+puts "\n\n#{data}\n\n"
+
+  targeturl = "https://#{DESTINATION_SUBDOMAIN}.zendesk.com/api/v2/triggers.json"
+  c.username = DESTINATION_EMAIL
+  c.password = DESTINATION_PASSWORD
+  c.url = targeturl
+  c.http_post (data)
+  results = JSON.parse (c.body_str)
+  if !results["error"].nil?
+    puts "ERROR: problems with adding triggers"
+    puts "Error description: #{results["error"]}"
+    puts "Error details: #{results["message"]}\n"
+    puts results.inspect
+    error_count += 1
+  else
+    created_triggers_hash[results["trigger"]["title"]] = [t.id, results["trigger"]["id"]]
+  end
+
+  count += 1
+#   break if count == 3
+end
+
+puts "\n\n***************************************\n#{created_triggers_hash.count} triggers CREATED : \n"
+puts " original trigger ID | created trigger ID | name of trigger" if created_triggers_hash.count > 0
+created_triggers_hash.each do |name, id_array|
+  puts "      #{id_array[0]}       |       #{id_array[1]}     | #{name}"
+end
+
+
+puts "\n\n***************************************\n#{error_count} ERRORS DETECTED - please check log for details\n\n" if error_count > 0
