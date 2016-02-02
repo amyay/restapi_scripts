@@ -12,8 +12,7 @@ next_page = false
 c = nil
 custom_ticket_fields = Array.new
 specific_custom_ticket_fields = Array.new
-created_ticket_field_ids = Array.new
-created_ticket_field_names = Array.new
+created_ticket_field_hash = Hash.new
 error_count = 0
 count = 1
 data = nil
@@ -121,8 +120,8 @@ puts "\n\n#{data}\n\n"
     puts "Error details: #{results["message"]}\n"
     error_count += 1
   else
-    created_ticket_field_ids << results["ticket_field"]["id"]
-    created_ticket_field_names << results["ticket_field"]["title"]
+    # created_ticket_field_hash[results["ticket_field"]["id"]] = results["ticket_field"]["title"]
+    created_ticket_field_hash[results["ticket_field"]["title"]] = [tf.id, results["ticket_field"]["id"]]
   end
 
   count += 1
@@ -131,10 +130,10 @@ end
 
 # puts "\n\n***************************************\n#{created_ticket_field_ids.count} custom ticket fields CREATED : #{created_ticket_field_ids.inspect}\n"
 
-puts "\n\n***************************************\n#{created_ticket_field_ids.count} custom ticket fields CREATED : \n"
-puts " created custom field ID | name of custom field"
-created_ticket_field_ids.zip(created_ticket_field_names).each do |id, name|
-  puts "      #{id}           | #{name}"
+puts "\n\n***************************************\n#{created_ticket_field_hash.count} custom ticket fields CREATED : \n"
+puts " original custom field ID | created custom field ID | name of custom field" if created_ticket_field_hash.count > 0
+created_ticket_field_hash.each do |name, id_array|
+  puts "         #{id_array[0]}         |        #{id_array[1]}         | #{name}"
 end
 
 
