@@ -12,9 +12,8 @@ next_page = false
 c = nil
 ticket_form_list = Array.new
 specific_ticket_form_list = Array.new
-custom_field_id_hash = Hash.new
-group_id_hash = Hash.new
-assignee_id_hash = Hash.new
+ticket_field_id_hash = Hash.new
+new_ticket_field_ids = Array.new
 created_ticket_form_hash = Hash.new
 error_count = 0
 count = 1
@@ -65,7 +64,7 @@ end
 
 puts "\n\n\n"
 
-# now prompts for user to specify the custom fields they want to copy
+# now prompts for user to specify the ticket forms they want to copy
 puts 'please define the list of ticket form IDs you would like to copy'
 puts 'for example: 12345, 56678'
 user_input = gets.chomp
@@ -83,233 +82,94 @@ ticket_form_list.each do |t|
   end
 end
 
+puts "current specific_ticket_form_list"
 puts specific_ticket_form_list.inspect
 
+# now checks for ticket form ID and ticket field ID mappings
+specific_ticket_form_list.each do |t|
 
-# # now checks for ticket form ID and custom field ID mappings
-# specific_trigger_list.each do |t|
+  # check thru each ticket field ID
+  t.ticket_field_ids.each_with_index do |tfid, index|
 
-#   # check meet all condition
-#   t.conditions["all"].each do |all_con|
+    # first 5 elements are default and cannot be removed / reordered
+    # subject, description, status, group, assignee
+    # let's grap IDs for them, in case things can change in the future (so they are not default and unmovable)
 
-#     # 1. check for ticket form IDs
-#     if all_con["field"] === "ticket_form_id"
-#       # check existing hash
-#       if ticket_form_id_hash[all_con["value"]].nil?
-#         # not present in current hash
-#         # request for ticket form ID mapping
-#         puts "please provide mapping for ticket form ID #{all_con["value"]}"
-#         user_input = gets.chomp
-#         ticket_form_id_hash[all_con["value"]] = user_input
-#         all_con["value"] = user_input
-#       else
-#         # ticket form ID mapping already exist in hash
-#         # just update accordingly
-#         all_con["value"] = ticket_form_id_hash[all_con["value"]]
-#       end
-#     end
+    if ticket_field_id_hash[tfid].nil?
+      # not present in current hash
+      # request for custom field ID mapping
+      puts "please provide mapping for ticket field ID #{tfid} (subject?)" if index == 0
+      puts "please provide mapping for ticket field ID #{tfid} (description?)" if index == 1
+      puts "please provide mapping for ticket field ID #{tfid} (status?)" if index == 2
+      puts "please provide mapping for ticket field ID #{tfid}" if index > 2
+      user_input = gets.chomp
+      ticket_field_id_hash[tfid] = user_input.to_i
+      new_ticket_field_ids[index] = user_input.to_i
+    else
+      # custom field ID mapping already exist in hash
+      # just update accordingly
+      new_ticket_field_ids[index] = ticket_field_id_hash[tfid]
+    end
+  end
+  # update ticket_field_ids
+  t.ticket_field_ids = new_ticket_field_ids
+end
 
-#     # 2. check for custom field IDs
-#     if all_con["field"].include? "custom_fields_"
-#       # check existing hash
-#       if custom_field_id_hash[all_con["field"]].nil?
-#         # not present in current hash
-#         # request for custom field ID mapping
-#         puts "please provide mapping for #{all_con["field"]}"
-#         user_input = gets.chomp
-#         custom_field_id_hash[all_con["field"]] = 'custom_fields_'+user_input
-#         all_con["field"] = 'custom_fields_'+user_input
-#       else
-#         # custom field ID mapping already exist in hash
-#         # just update accordingly
-#         all_con["field"] = custom_field_id_hash[all_con["field"]]
-#       end
-#     end
-#   end
+puts "current specific_ticket_form_list"
+puts specific_ticket_form_list.inspect
 
-#   # check meet any condtition
-#   t.conditions["any"].each do |any_con|
-#     # 1. check for ticket form IDs
-#     if any_con["field"] === "ticket_form_id"
-#       # check existing hash
-#       if ticket_form_id_hash[any_con["value"]].nil?
-#         # not present in current hash
-#         # request for ticket form ID mapping
-#         puts "please provide mapping for ticket form ID #{any_con["value"]}"
-#         user_input = gets.chomp
-#         ticket_form_id_hash[any_con["value"]] = user_input
-#         any_con["value"] = user_input
-#       else
-#         # ticket form ID mapping already exist in hash
-#         # just update accordingly
-#         any_con["value"] = ticket_form_id_hash[any_con["value"]]
-#       end
-#     end
+puts "\ncurrent ticket_field_id_hash"
+puts ticket_field_id_hash
 
-#     # 2. check for custom field IDs
-#     if any_con["field"].include? "custom_fields_"
-#       # check existing hash
-#       if custom_field_id_hash[any_con["field"]].nil?
-#         # not present in current hash
-#         # request for custom field ID mapping
-#         puts "please provide mapping for #{any_con["field"]}"
-#         user_input = gets.chomp
-#         custom_field_id_hash[any_con["field"]] = 'custom_fields_'+user_input
-#         any_con["field"] = 'custom_fields_'+user_input
-#       else
-#         # custom field ID mapping already exist in hash
-#         # just update accordingly
-#         any_con["field"] = custom_field_id_hash[any_con["field"]]
-#       end
-#     end
-#   end
+# now prompts for user to ticket forms
+puts "are you sure you are ready copy these #{specific_ticket_form_list.length} ticket forms? (y/n)"
+user_input = gets.chomp
 
-#   # check action
-#   t.actions.each do |a|
+if !(user_input.downcase == 'y' || user_input.downcase == 'yes')
+  abort('abort copy of specific ticket forms by user!!')
+end
 
-#     # check for custom fields
-#     if a["field"].include? "custom_fields_"
-#       # check existing hash
-#       if custom_field_id_hash[a["field"]].nil?
-#         # not present in current hash
-#         # request for custom field ID mapping
-#         puts "please provide mapping for #{a["field"]}"
-#         user_input = gets.chomp
-#         custom_field_id_hash[a["field"]] = 'custom_fields_'+user_input
-#         a["field"] = 'custom_fields_'+user_input
-#       else
-#         # custom field ID mapping already exist in hash
-#         # just update accordingly
-#         a["field"] = custom_field_id_hash[a["field"]]
-#       end
-#     end
+count = 1
 
-#     # check for group_id
-#     if a["field"] === "group_id"
-#       # check existing hash
-#       if group_id_hash[a["value"]].nil?
-#         # not present in current hash
-#         # request for group ID mapping
-#         puts "please provide mapping for group ID #{a["value"]}"
-#         user_input = gets.chomp
-#         group_id_hash[a["value"]] = user_input
-#         a["value"] = user_input
-#       else
-#         # group ID mapping already exist in hash
-#         # just update accordingly
-#         a["value"] = group_id_hash[a["value"]]
-#       end
-#     end
+# set up copying
+specific_ticket_form_list.each do |t|
 
-#     # check for assignee_id
-#     if a["field"] === "assignee_id"
-#       # check existing hash
-#       if assignee_id_hash[a["value"]].nil?
-#         # not present in current hash
-#         # request for assignee ID mapping
-#         puts "please provide mapping for assignee ID #{a["value"]}"
-#         user_input = gets.chomp
-#         assignee_id_hash[a["value"]] = user_input
-#         a["value"] = user_input
-#       else
-#         # group ID mapping already exist in hash
-#         # just update accordingly
-#         a["value"] = assignee_id_hash[a["value"]]
-#       end
-#     end
+  data = "{\"ticket_form\": {\"name\" : \"#{t.name}\",\"raw_name\": \"#{t.raw_name}\", \"display_name\": \"#{t.display_name}\", \"raw_display_name\": \"#{t.raw_display_name}\", \"end_user_visible\": #{t.end_user_visible}, \"position\": #{t.position}, \"active\": #{t.active}, \"default\": #{t.default}, \"ticket_field_ids\": ["
 
-#   end
+  # now iterate thru action
+  t.ticket_field_ids.each do |tfid|
+    data << "#{tfid},"
+  end
+  data.chop!
+  data << "]}}"
 
-# end
+puts "\n\n#{data}\n\n"
 
-# puts specific_trigger_list.inspect
-# puts ticket_form_id_hash
-# puts custom_field_id_hash
-# puts group_id_hash
-# puts assignee_id_hash
+  targeturl = "https://#{DESTINATION_SUBDOMAIN}.zendesk.com/api/v2/ticket_forms.json"
+  c.username = DESTINATION_EMAIL
+  c.password = DESTINATION_PASSWORD
+  c.url = targeturl
+  c.http_post (data)
+  results = JSON.parse (c.body_str)
+  if !results["error"].nil?
+    puts "ERROR: problems with adding ticket forms"
+    puts "Error description: #{results["error"]}"
+    puts "Error details: #{results["message"]}\n"
+    puts results.inspect
+    error_count += 1
+  else
+    created_ticket_form_hash[results["ticket_form"]["name"]] = [t.id, results["ticket_form"]["id"]]
+  end
+
+  count += 1
+#   break if count == 3
+end
+
+puts "\n\n***************************************\n#{created_ticket_form_hash.count} ticket forms CREATED : \n"
+puts " original ticket form ID | created ticket form ID | name of ticket form" if created_ticket_form_hash.count > 0
+created_ticket_form_hash.each do |name, id_array|
+  puts "          #{id_array[0]}         |         #{id_array[1]}         | #{name}"
+end
 
 
-# #################################################
-# #################################################
-# #################################################
-# #################################################
-# #################################################
-# #################################################
-# #################################################
-
-
-# # now prompts for user to copy all ticket fields
-# puts "are you sure you are ready copy these #{specific_trigger_list.length} triggers? (y/n)"
-# user_input = gets.chomp
-
-# if !(user_input.downcase == 'y' || user_input.downcase == 'yes')
-#   abort('abort copy of specific custom ticket fields by user!!')
-# end
-
-# count = 1
-
-# # set up copying
-# specific_trigger_list.each do |t|
-
-#   data = "{\"trigger\": {\"title\" : \"#{t.title}\",\"active\": #{t.active},\"position\": #{t.position},\"actions\": ["
-
-#   # now iterate thru action
-#   t.actions.each do |a|
-#     if a['field'].include? 'notification_'
-#       data << "{\"field\": \"#{a['field']}\", \"value\": #{a['value']}},"
-#     else
-#       data << "{\"field\": \"#{a['field']}\", \"value\": \"#{a['value']}\"},"
-#     end
-#   end
-#   data.chop!
-
-#   data << "],\"conditions\": {\"all\": ["
-
-#   # now iterate thru conditions
-#   # meet any conditions
-#   t.conditions["all"].each do |all_con|
-#     data << "{\"field\": \"#{all_con['field']}\", \"operator\": \"#{all_con['operator']}\", \"value\": \"#{all_con['value']}\"},"
-#   end
-
-#   data.chop! if t.conditions["all"].length > 0
-#   data << "], \"any\": ["
-
-#   # meet all  conditions
-#   t.conditions["any"].each do |any_con|
-#     data << "{\"field\": \"#{any_con['field']}\", \"operator\": \"#{any_con['operator']}\", \"value\": \"#{any_con['value']}\"},"
-#   end
-
-#   data.chop! if t.conditions["any"].length > 0
-#   data << "]}}}"
-
-
-# puts "\n\n#{data}\n\n"
-
-#   targeturl = "https://#{DESTINATION_SUBDOMAIN}.zendesk.com/api/v2/triggers.json"
-#   c.username = DESTINATION_EMAIL
-#   c.password = DESTINATION_PASSWORD
-#   c.url = targeturl
-#   c.http_post (data)
-#   results = JSON.parse (c.body_str)
-#   if !results["error"].nil?
-#     puts "ERROR: problems with adding triggers"
-#     puts "Error description: #{results["error"]}"
-#     puts "Error details: #{results["message"]}\n"
-#     puts results.inspect
-#     error_count += 1
-#   else
-#     created_triggers_hash[results["trigger"]["title"]] = [t.id, results["trigger"]["id"]]
-#   end
-
-#   count += 1
-# #   break if count == 3
-# end
-
-# puts "\n\n***************************************\n#{created_triggers_hash.count} triggers CREATED : \n"
-# puts " original trigger ID | created trigger ID | name of trigger" if created_triggers_hash.count > 0
-# created_triggers_hash.each do |name, id_array|
-#   puts "      #{id_array[0]}       |       #{id_array[1]}     | #{name}"
-# end
-
-
-# puts "\n\n***************************************\n#{error_count} ERRORS DETECTED - please check log for details\n\n" if error_count > 0
+puts "\n\n***************************************\n#{error_count} ERRORS DETECTED - please check log for details\n\n" if error_count > 0

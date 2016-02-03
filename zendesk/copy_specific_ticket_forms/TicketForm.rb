@@ -1,6 +1,8 @@
 class TicketForm
   attr_reader :id, :name, :raw_name, :display_name, :raw_display_name, :end_user_visible, :position, :ticket_field_ids, :active, :default, :in_all_brands, :restricted_brand_ids
 
+  attr_writer :id, :name, :raw_name, :display_name, :raw_display_name, :end_user_visible, :position, :ticket_field_ids, :active, :default, :in_all_brands, :restricted_brand_ids
+
   def initialize id, name, raw_name, display_name, raw_display_name, end_user_visible, position, ticket_field_ids, active, default, in_all_brands, restricted_brand_ids
     @id = id
     @name = name
