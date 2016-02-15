@@ -82,18 +82,21 @@ ticket_form_list.each do |t|
   end
 end
 
-puts "current specific_ticket_form_list"
+puts "current specific_ticket_form_list (before)"
 puts specific_ticket_form_list.inspect
 
 # now checks for ticket form ID and ticket field ID mappings
 specific_ticket_form_list.each do |t|
 
+  # reset new_ticket_field_ids to avoid overwriting
+  new_ticket_field_ids = []
+
+# puts "ticket form #{t.id}: #{t.name}"
+# puts "debug: t.ticket_field_ids for #{t.id} (before check)"
+# puts t.ticket_field_ids.inspect
+
   # check thru each ticket field ID
   t.ticket_field_ids.each_with_index do |tfid, index|
-
-    # first 5 elements are default and cannot be removed / reordered
-    # subject, description, status, group, assignee
-    # let's grap IDs for them, in case things can change in the future (so they are not default and unmovable)
 
     if ticket_field_id_hash[tfid].nil?
       # not present in current hash
@@ -111,11 +114,20 @@ specific_ticket_form_list.each do |t|
       new_ticket_field_ids[index] = ticket_field_id_hash[tfid]
     end
   end
-  # update ticket_field_ids
+
+# update ticket_field_ids
   t.ticket_field_ids = new_ticket_field_ids
+
+# puts "debug: t.ticket_field_ids for #{t.id} (after check)"
+# puts t.ticket_field_ids.inspect
+
+# puts "debug: interim specific_ticket_form_list"
+# puts specific_ticket_form_list.inspect
+# puts "\n\n"
+
 end
 
-puts "current specific_ticket_form_list"
+puts "current specific_ticket_form_list (after)"
 puts specific_ticket_form_list.inspect
 
 puts "\ncurrent ticket_field_id_hash"
