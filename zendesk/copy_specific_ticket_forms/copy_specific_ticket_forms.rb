@@ -86,7 +86,11 @@ end
 puts "current specific_ticket_form_list (before)"
 puts specific_ticket_form_list.inspect
 
+############################################################################################
 # get the names of each ticket field, and put them in existing_ticket_field_id_to_name_hash
+############################################################################################
+count = 1
+
 begin
   next_page = false
   # puts "******** count is #{count} *********"
