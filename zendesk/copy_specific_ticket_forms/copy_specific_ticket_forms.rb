@@ -15,6 +15,7 @@ specific_ticket_form_list = Array.new
 ticket_field_id_hash = Hash.new
 new_ticket_field_ids = Array.new
 created_ticket_form_hash = Hash.new
+existing_ticket_field_id_to_name_hash = Hash.new
 error_count = 0
 count = 1
 data = nil
@@ -85,6 +86,41 @@ end
 puts "current specific_ticket_form_list (before)"
 puts specific_ticket_form_list.inspect
 
+# get the names of each ticket field, and put them in existing_ticket_field_id_to_name_hash
+begin
+  next_page = false
+  # puts "******** count is #{count} *********"
+  # puts "\n"
+
+  targeturl = "https://#{SOURCE_SUBDOMAIN}.zendesk.com/api/v2/ticket_fields.json?page=#{count}"
+  c.username = SOURCE_EMAIL
+  c.password = SOURCE_PASSWORD
+  c.url = targeturl
+  c.headers['Content-Type'] = "application/json"
+  c.verbose = true
+  c.http_get
+  # puts c.body_str
+
+  # first, turns json into a hash
+  results = JSON.parse (c.body_str)
+
+  # now grab an array of tickets
+  ticket_field_list = results["ticket_fields"]
+
+  # within each item in ticket_list, it's a hash, so look for ticket IDs
+  ticket_field_list.each do |tf|
+    existing_ticket_field_id_to_name_hash[tf["id"]] = tf["title"]
+  end
+
+  # check to see if there are more pages to go
+  next_page = !results["next_page"].nil?
+
+  count += 1
+
+end while next_page
+
+puts existing_ticket_field_id_to_name_hash.inspect
+
 # now checks for ticket form ID and ticket field ID mappings
 specific_ticket_form_list.each do |t|
 
@@ -101,10 +137,7 @@ specific_ticket_form_list.each do |t|
     if ticket_field_id_hash[tfid].nil?
       # not present in current hash
       # request for custom field ID mapping
-      puts "please provide mapping for ticket field ID #{tfid} (subject?)" if index == 0
-      puts "please provide mapping for ticket field ID #{tfid} (description?)" if index == 1
-      puts "please provide mapping for ticket field ID #{tfid} (status?)" if index == 2
-      puts "please provide mapping for ticket field ID #{tfid}" if index > 2
+      puts "please provide mapping for ticket field ID #{tfid} (#{existing_ticket_field_id_to_name_hash[tfid]})"
       user_input = gets.chomp
       ticket_field_id_hash[tfid] = user_input.to_i
       new_ticket_field_ids[index] = user_input.to_i
