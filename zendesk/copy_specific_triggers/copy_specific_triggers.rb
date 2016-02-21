@@ -17,6 +17,10 @@ custom_field_id_hash = Hash.new
 group_id_hash = Hash.new
 assignee_id_hash = Hash.new
 created_triggers_hash = Hash.new
+existing_ticket_field_id_to_name_hash = Hash.new
+existing_ticket_form_id_to_name_hash = Hash.new
+existing_group_id_to_name_hash = Hash.new
+existing_user_id_to_name_hash = Hash.new
 error_count = 0
 count = 1
 data = nil
@@ -86,6 +90,164 @@ end
 
 puts specific_trigger_list.inspect
 
+############################################################################################
+# get the names of each ticket field, and put them in existing_ticket_field_id_to_name_hash
+############################################################################################
+
+count = 1
+
+begin
+  next_page = false
+  # puts "******** count is #{count} *********"
+  # puts "\n"
+
+  targeturl = "https://#{SOURCE_SUBDOMAIN}.zendesk.com/api/v2/ticket_fields.json?page=#{count}"
+  c.username = SOURCE_EMAIL
+  c.password = SOURCE_PASSWORD
+  c.url = targeturl
+  c.headers['Content-Type'] = "application/json"
+  c.verbose = true
+  c.http_get
+  # puts c.body_str
+
+  # first, turns json into a hash
+  results = JSON.parse (c.body_str)
+
+  # now grab an array of tickets
+  ticket_field_list = results["ticket_fields"]
+
+  # within each item in ticket_list, it's a hash, so look for ticket IDs
+  ticket_field_list.each do |tf|
+    existing_ticket_field_id_to_name_hash[tf["id"]] = tf["title"]
+  end
+
+  # check to see if there are more pages to go
+  next_page = !results["next_page"].nil?
+
+  count += 1
+
+end while next_page
+
+puts existing_ticket_field_id_to_name_hash.inspect
+
+############################################################################################
+# get the names of each ticket form, and put them in existing_ticket_form_id_to_name_hash
+############################################################################################
+count = 1
+
+begin
+  next_page = false
+  # puts "******** count is #{count} *********"
+  # puts "\n"
+
+  targeturl = "https://#{SOURCE_SUBDOMAIN}.zendesk.com/api/v2/ticket_forms.json?page=#{count}"
+  c.username = SOURCE_EMAIL
+  c.password = SOURCE_PASSWORD
+  c.url = targeturl
+  c.headers['Content-Type'] = "application/json"
+  c.verbose = true
+  c.http_get
+  # puts c.body_str
+
+  # first, turns json into a hash
+  results = JSON.parse (c.body_str)
+
+  # now grab an array of tickets
+  ticket_form_list = results["ticket_forms"]
+
+  # within each item in ticket_list, it's a hash, so look for ticket IDs
+  ticket_form_list.each do |tf|
+    existing_ticket_form_id_to_name_hash[tf["id"]] = tf["name"]
+  end
+
+  # check to see if there are more pages to go
+  next_page = !results["next_page"].nil?
+
+  count += 1
+
+end while next_page
+
+puts existing_ticket_form_id_to_name_hash.inspect
+
+############################################################################################
+# get the names of each group, and put them in existing_group_id_to_name_hash
+############################################################################################
+count = 1
+
+begin
+  next_page = false
+  # puts "******** count is #{count} *********"
+  # puts "\n"
+
+  targeturl = "https://#{SOURCE_SUBDOMAIN}.zendesk.com/api/v2/groups.json?page=#{count}"
+  c.username = SOURCE_EMAIL
+  c.password = SOURCE_PASSWORD
+  c.url = targeturl
+  c.headers['Content-Type'] = "application/json"
+  c.verbose = true
+  c.http_get
+  # puts c.body_str
+
+  # first, turns json into a hash
+  results = JSON.parse (c.body_str)
+
+  # now grab an array of tickets
+  group_list = results["groups"]
+
+  # within each item in ticket_list, it's a hash, so look for ticket IDs
+  group_list.each do |g|
+    existing_group_id_to_name_hash[g["id"]] = g["name"]
+  end
+
+  # check to see if there are more pages to go
+  next_page = !results["next_page"].nil?
+
+  count += 1
+
+end while next_page
+
+puts existing_group_id_to_name_hash.inspect
+
+############################################################################################
+# get the names of each user, and put them in existing_user_id_to_name_hash
+############################################################################################
+count = 1
+
+begin
+  next_page = false
+  # puts "******** count is #{count} *********"
+  # puts "\n"
+
+  targeturl = "https://#{SOURCE_SUBDOMAIN}.zendesk.com/api/v2/users.json?page=#{count}"
+  c.username = SOURCE_EMAIL
+  c.password = SOURCE_PASSWORD
+  c.url = targeturl
+  c.headers['Content-Type'] = "application/json"
+  c.verbose = true
+  c.http_get
+  # puts c.body_str
+
+  # first, turns json into a hash
+  results = JSON.parse (c.body_str)
+
+  # now grab an array of tickets
+  user_list = results["users"]
+
+  # within each item in ticket_list, it's a hash, so look for ticket IDs
+  user_list.each do |u|
+    existing_user_id_to_name_hash[u["id"]] = u["name"]
+  end
+
+  # check to see if there are more pages to go
+  next_page = !results["next_page"].nil?
+
+  count += 1
+
+end while next_page
+
+puts existing_user_id_to_name_hash.inspect
+
+
 # now checks for ticket form ID and custom field ID mappings
 specific_trigger_list.each do |t|
 
@@ -98,7 +260,7 @@ specific_trigger_list.each do |t|
       if ticket_form_id_hash[all_con["value"]].nil?
         # not present in current hash
         # request for ticket form ID mapping
-        puts "please provide mapping for ticket form ID #{all_con["value"]}"
+        puts "please provide mapping for ticket form ID #{all_con["value"]} (#{existing_ticket_form_id_to_name_hash[all_con["value"].to_i]})"
         user_input = gets.chomp
         ticket_form_id_hash[all_con["value"]] = user_input
         all_con["value"] = user_input
@@ -115,7 +277,9 @@ specific_trigger_list.each do |t|
       if custom_field_id_hash[all_con["field"]].nil?
         # not present in current hash
         # request for custom field ID mapping
-        puts "please provide mapping for #{all_con["field"]}"
+        s = all_con["field"].sub(/custom_fields_/, '')
+        puts "please provide mapping for #{all_con["field"]} (#{existing_ticket_field_id_to_name_hash[s.to_i]})"
+        # puts "please provide mapping for #{all_con["field"]}"
         user_input = gets.chomp
         custom_field_id_hash[all_con["field"]] = 'custom_fields_'+user_input
         all_con["field"] = 'custom_fields_'+user_input
@@ -135,7 +299,7 @@ specific_trigger_list.each do |t|
       if ticket_form_id_hash[any_con["value"]].nil?
         # not present in current hash
         # request for ticket form ID mapping
-        puts "please provide mapping for ticket form ID #{any_con["value"]}"
+        puts "please provide mapping for ticket form ID #{any_con["value"]} (#{existing_ticket_form_id_to_name_hash[any_con["value"].to_i]})"
         user_input = gets.chomp
         ticket_form_id_hash[any_con["value"]] = user_input
         any_con["value"] = user_input
@@ -152,7 +316,9 @@ specific_trigger_list.each do |t|
       if custom_field_id_hash[any_con["field"]].nil?
         # not present in current hash
         # request for custom field ID mapping
-        puts "please provide mapping for #{any_con["field"]}"
+        s = any_con["field"].sub(/custom_fields_/, '')
+        puts "please provide mapping for #{any_con["field"]} (#{existing_ticket_field_id_to_name_hash[s.to_i]})"
+        # puts "please provide mapping for #{any_con["field"]}"
         user_input = gets.chomp
         custom_field_id_hash[any_con["field"]] = 'custom_fields_'+user_input
         any_con["field"] = 'custom_fields_'+user_input
@@ -173,7 +339,9 @@ specific_trigger_list.each do |t|
       if custom_field_id_hash[a["field"]].nil?
         # not present in current hash
         # request for custom field ID mapping
-        puts "please provide mapping for #{a["field"]}"
+        s = a["field"].sub(/custom_fields_/, '')
+        puts "please provide mapping for #{a["field"]} (#{existing_ticket_field_id_to_name_hash[s.to_i]})"
+        # puts "please provide mapping for #{a["field"]}"
         user_input = gets.chomp
         custom_field_id_hash[a["field"]] = 'custom_fields_'+user_input
         a["field"] = 'custom_fields_'+user_input
@@ -190,7 +358,7 @@ specific_trigger_list.each do |t|
       if group_id_hash[a["value"]].nil?
         # not present in current hash
         # request for group ID mapping
-        puts "please provide mapping for group ID #{a["value"]}"
+        puts "please provide mapping for group ID #{a["value"]} (#{existing_group_id_to_name_hash[a["value"].to_i]})"
         user_input = gets.chomp
         group_id_hash[a["value"]] = user_input
         a["value"] = user_input
@@ -207,7 +375,7 @@ specific_trigger_list.each do |t|
       if assignee_id_hash[a["value"]].nil?
         # not present in current hash
         # request for assignee ID mapping
-        puts "please provide mapping for assignee ID #{a["value"]}"
+        puts "please provide mapping for assignee ID #{a["value"]} (#{existing_user_id_to_name_hash[a["value"].to_i]})"
         user_input = gets.chomp
         assignee_id_hash[a["value"]] = user_input
         a["value"] = user_input
