@@ -9,6 +9,7 @@ require '../config.rb'
 # get a list of tickets in zendesk account
 
 next_page = false
+show_deactivated_triggers = false
 c = nil
 trigger_list = Array.new
 specific_trigger_list = Array.new
@@ -16,11 +17,13 @@ ticket_form_id_hash = Hash.new
 custom_field_id_hash = Hash.new
 group_id_hash = Hash.new
 assignee_id_hash = Hash.new
+brand_id_hash = Hash.new
 created_triggers_hash = Hash.new
 existing_ticket_field_id_to_name_hash = Hash.new
 existing_ticket_form_id_to_name_hash = Hash.new
 existing_group_id_to_name_hash = Hash.new
 existing_user_id_to_name_hash = Hash.new
+existing_brand_id_to_name_hash = Hash.new
 error_count = 0
 count = 1
 data = nil
@@ -61,11 +64,19 @@ begin
 
 end while next_page
 
+# ask user if they want to print out inactive triggers or not
+puts "do you wish to see inactive / deactivated triggers? (y/n)"
+user_input = gets.chomp
+
+if (user_input.downcase == 'y' || user_input.downcase == 'yes')
+  show_deactivated_triggers = true
+end
+
 # print out all triggers
 puts ' active? | ID of trigger | name of trigger '
 trigger_list.each do |t|
   puts "  #{t.active}   |    #{t.id}   | #{t.title}" if t.active === true
-  puts "  #{t.active}  |    #{t.id}   | #{t.title}" if t.active === false
+  puts "  #{t.active}  |    #{t.id}   | #{t.title}" if (t.active === false && show_deactivated_triggers)
 end
 
 puts "\n\n\n"
@@ -247,11 +258,52 @@ end while next_page
 
 puts existing_user_id_to_name_hash.inspect
 
+############################################################################################
+# get the names of each brand, and put them in existing_brand_id_to_name_hash
+############################################################################################
+count = 1
+
+begin
+  next_page = false
+  # puts "******** count is #{count} *********"
+  # puts "\n"
+
+  targeturl = "https://#{SOURCE_SUBDOMAIN}.zendesk.com/api/v2/brands.json?page=#{count}"
+  c.username = SOURCE_EMAIL
+  c.password = SOURCE_PASSWORD
+  c.url = targeturl
+  c.headers['Content-Type'] = "application/json"
+  c.verbose = true
+  c.http_get
+  # puts c.body_str
+
+  # first, turns json into a hash
+  results = JSON.parse (c.body_str)
+
+  # now grab an array of tickets
+  brand_list = results["brands"]
+
+  # within each item in ticket_list, it's a hash, so look for ticket IDs
+  brand_list.each do |b|
+    existing_brand_id_to_name_hash[b["id"]] = b["name"]
+  end
+
+  # check to see if there are more pages to go
+  next_page = !results["next_page"].nil?
+
+  count += 1
+
+end while next_page
+
+puts existing_brand_id_to_name_hash.inspect
+
 
 # now checks for ticket form ID and custom field ID mappings
 specific_trigger_list.each do |t|
 
+  #############################
   # check meet all condition
+  #############################
   t.conditions["all"].each do |all_con|
 
     # 1. check for ticket form IDs
@@ -289,9 +341,28 @@ specific_trigger_list.each do |t|
         all_con["field"] = custom_field_id_hash[all_con["field"]]
       end
     end
+
+    # 3. check for brand fIDs
+    if all_con["field"] === "brand_id"
+      # check existing hash
+      if brand_id_hash[all_con["value"]].nil?
+        # not present in current hash
+        # request for brand ID mapping
+        puts "please provide mapping for brand ID #{all_con["value"]} (#{existing_brand_id_to_name_hash[all_con["value"].to_i]})"
+        user_input = gets.chomp
+        brand_id_hash[all_con["value"]] = user_input
+        all_con["value"] = user_input
+      else
+        # brand ID mapping already exist in hash
+        # just update accordingly
+        all_con["value"] = brand_id_hash[all_con["value"]]
+      end
+    end
   end
 
+  #############################
   # check meet any condtition
+  #############################
   t.conditions["any"].each do |any_con|
     # 1. check for ticket form IDs
     if any_con["field"] === "ticket_form_id"
@@ -328,9 +399,28 @@ specific_trigger_list.each do |t|
         any_con["field"] = custom_field_id_hash[any_con["field"]]
       end
     end
+
+    # 3. check for brand IDs
+    if any_con["field"] === "brand_id"
+      # check existing hash
+      if brand_id_hash[any_con["value"]].nil?
+        # not present in current hash
+        # request for brand ID mapping
+        puts "please provide mapping for brand ID #{any_con["value"]} (#{existing_brand_id_to_name_hash[any_con["value"].to_i]})"
+        user_input = gets.chomp
+        brand_id_hash[any_con["value"]] = user_input
+        any_con["value"] = user_input
+      else
+        # ticket form ID mapping already exist in hash
+        # just update accordingly
+        any_con["value"] = brand_id_hash[any_con["value"]]
+      end
+    end
   end
 
+  #############################
   # check action
+  #############################
   t.actions.each do |a|
 
     # check for custom fields
@@ -386,6 +476,23 @@ specific_trigger_list.each do |t|
       end
     end
 
+    # check for brand_id
+    if a["field"] === "brand_id"
+      # check existing hash
+      if brand_id_hash[a["value"]].nil?
+        # not present in current hash
+        # request for assignee ID mapping
+        puts "please provide mapping for brand ID #{a["value"]} (#{existing_brand_id_to_name_hash[a["value"].to_i]})"
+        user_input = gets.chomp
+        brand_id_hash[a["value"]] = user_input
+        a["value"] = user_input
+      else
+        # brand ID mapping already exist in hash
+        # just update accordingly
+        a["value"] = brand_id_hash[a["value"]]
+      end
+    end
+
   end
 
 end
@@ -395,6 +502,7 @@ puts ticket_form_id_hash
 puts custom_field_id_hash
 puts group_id_hash
 puts assignee_id_hash
+puts brand_id_hash
 
 
 #################################################
