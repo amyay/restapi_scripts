@@ -35,8 +35,14 @@ begin
 
   # within each item in ticket_list, it's a hash, so look for ticket IDs
   ticket_list.each do |t|
-    ticket_ids << t["id"]
+    # add checking condition for xero
+    # if (t["id"] < 10200)
+      ticket_ids << t["id"]
+    # end
   end
+
+  # prints out list of ticket ID just in case
+  puts ticket_ids
 
   # check to see if there are more pages to go
   next_page = !results["next_page"].nil?
@@ -44,6 +50,10 @@ begin
   count += 1
 
 end while next_page
+
+puts '****************************************************'
+puts "total number of tickets to be deleted: #{ticket_ids.length}"
+puts '****************************************************'
 
 # now prompts for user to delete all tickets
 puts 'are you sure you are ready delete all tickets? (y/n)'

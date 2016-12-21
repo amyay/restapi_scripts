@@ -16,7 +16,8 @@ c.verbose = true
 c.http_get
 puts c.body_str
 
-ids_array = [40, 41, 42, 43, 44]
+# ids_array = [40, 41, 42, 43, 44]
+ids_array = [56, 57, 58]
 ids_join = ids_array.join(',')
 
 
