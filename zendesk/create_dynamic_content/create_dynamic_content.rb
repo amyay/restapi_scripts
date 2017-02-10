@@ -6,12 +6,15 @@ require 'json'
 require './Dynamiccontent.rb'
 require '../config.rb'
 
-csv_filename = "my_dc.csv"
+# csv_filename = "my_dc.csv"
+csv_filename = "test.csv"
 dc_array = Array.new
 created_dc_ids = Array.new
-data = nil
+data_default = nil
+data_variants = nil
 count = 1
 error_count = 0
+current_dc_id = 0
 
 # read input data
 CSV.foreach(csv_filename, :headers=>true) do |row|
@@ -19,10 +22,15 @@ CSV.foreach(csv_filename, :headers=>true) do |row|
   dc_array << dc
 end
 
-puts "\n#{dc_array.length} dynamic content found\n\n"
+puts "\n#{dc_array.length} dynamic content found:\n"
+
+dc_array.each do |dc|
+  puts dc.name
+end
+
 
 # now prompts for user to copy all ticket fields
-puts 'are you sure you are ready create dynamic contents? (y/n)'
+puts "\n\nare you sure you are ready create dynamic contents? (y/n)"
 user_input = gets.chomp
 
 if !(user_input.downcase == 'y' || user_input.downcase == 'yes')
@@ -32,18 +40,13 @@ end
 # now build data for POST command
 
 dc_array.each do |dc|
-  data = "{\"item\": {\"name\": \"#{dc.name}\",\"default_locale_id\": 1,\"variants\": ["
-  data << "{\"locale_id\": 1, \"default\": true,\"content\": \"#{dc.variant_1}\"},"
-  data << "{\"locale_id\": 26, \"default\": false,\"content\": \"#{dc.variant_26}\"},"
-  data << "{\"locale_id\": 47, \"default\": false,\"content\": \"#{dc.variant_47}\"},"
-  data << "{\"locale_id\": 9, \"default\": false,\"content\": \"#{dc.variant_9}\"},"
-  data << "{\"locale_id\": 81, \"default\": false,\"content\": \"#{dc.variant_81}\"},"
-  data << "{\"locale_id\": 77, \"default\": false,\"content\": \"#{dc.variant_77}\"},"
-  data << "{\"locale_id\": 1307, \"default\": false,\"content\": \"#{dc.variant_1307}\"}"
 
-  data << "]}}"
+  # first create default
+  data_default = "{\"item\": {\"name\": \"#{dc.name}\",\"default_locale_id\": 1,\"variants\": ["
+  data_default << "{\"locale_id\": 1, \"default\": true,\"content\": \"#{dc.variant_1}\"}"
+  data_default << "]}}"
 
-  puts "\nDEBUG: data:\n\n#{data}\n\n"
+  puts "\nDEBUG: data:\n\n#{data_default}\n\n"
 
 
   c = Curl::Easy.new ("https://#{SUBDOMAIN}.zendesk.com/api/v2/dynamic_content/items.json")
@@ -52,16 +55,48 @@ dc_array.each do |dc|
   c.password = PASSWORD
   c.headers['Content-Type'] = "application/json"
   c.verbose = true
-  c.http_post (data)
+  c.http_post (data_default)
   results = JSON.parse (c.body_str)
   if !results["error"].nil?
     puts "ERROR: problems with adding dynamic content"
     puts "Error description: #{results["error"]}"
     puts "Error details: #{results["message"]}\n"
     error_count += 1
+    break
   else
-    created_dc_ids << results["item"]["id"]
+    current_dc_id = results["item"]["id"]
+    created_dc_ids << current_dc_id
   end
+
+  # now create variants
+
+  data_variants = "{\"variants\": ["
+  data_variants << "{\"locale_id\": 26, \"active\": true, \"default\": false,\"content\": \"#{dc.variant_26}\"},"
+  data_variants << "{\"locale_id\": 47, \"active\": true, \"default\": false,\"content\": \"#{dc.variant_47}\"},"
+  data_variants << "{\"locale_id\": 9, \"active\": true, \"default\": false,\"content\": \"#{dc.variant_9}\"},"
+  data_variants << "{\"locale_id\": 81, \"active\": true, \"default\": false,\"content\": \"#{dc.variant_81}\"},"
+  data_variants << "{\"locale_id\": 77, \"active\": true, \"default\": false,\"content\": \"#{dc.variant_77}\"},"
+  data_variants << "{\"locale_id\": 1307, \"active\": true, \"default\": false,\"content\": \"#{dc.variant_1307}\"}"
+  data_variants << "]}"
+
+  puts "\nDEBUG: data:\n\n#{data_variants}\n\n"
+
+  targeturl = "https://#{SUBDOMAIN}.zendesk.com/api/v2/dynamic_content/items/#{current_dc_id}/variants/create_many.json"
+  c.username = EMAIL
+  c.password = PASSWORD
+  c.url = targeturl
+  c.http_post (data_variants)
+  results = JSON.parse (c.body_str)
+
+  if !results["error"].nil?
+    puts "ERROR: problems with adding dynamic content variants"
+    puts "Error description: #{results["error"]}"
+    puts "Error details: #{results["message"]}\n"
+    error_count += 1
+    break
+  end
+
+
 
   count += 1
 #   break if count == 3
