@@ -69,8 +69,9 @@ dc_array.each do |dc|
   else
     current_dc_id = results["item"]["id"]
     current_dc_title = "#{dc.name}"
+    current_dc_placeholder = results["item"]["placeholder"]
     created_dc_ids << current_dc_id
-    created_dc_name_id_hash[current_dc_title] = current_dc_id
+    created_dc_name_id_hash[current_dc_title] = [current_dc_id, current_dc_placeholder]
   end
 
 
@@ -111,8 +112,8 @@ end
 
 puts "\n\n***************************************\n#{created_dc_ids.count} dynamic content CREATED\n"
 
-created_dc_name_id_hash.each do |title, id|
-  puts "#{id}        #{title}"
+created_dc_name_id_hash.each do |title, id_placeholder|
+  puts "#{id_placeholder[0]}        #{title}                        #{id_placeholder[1]}"
 end
 
 
