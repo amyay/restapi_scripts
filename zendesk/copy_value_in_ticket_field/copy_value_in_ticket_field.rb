@@ -18,6 +18,7 @@ data = nil
 TARGET_TICKET_FORM_ID = 613727
 REA_FROM_FIELD_ID = 79932888
 REA_TO_FIELD_ID = 79932908
+CUSTOM_TAG = "api_edit_on_propertyid_by_amy_at_zendesk"
 
 # ignore_types = ['subject', 'tickettype', 'description', 'group', 'status', 'assignee', 'priority']
 
@@ -59,7 +60,12 @@ begin
 
         end
 
-        custom_tickets << ct
+        # only push tickets of interest into array i.e.
+        # where ticket field for "rea_from_field" isn't empty
+        # where custom tag doesn't already exist
+        if ( (ct.rea_from_field != nil) && !(ct.tags.include? CUSTOM_TAG) )
+          custom_tickets << ct
+        end
 
       end
     end
