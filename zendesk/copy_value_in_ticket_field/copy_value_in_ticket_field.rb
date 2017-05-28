@@ -15,10 +15,24 @@ modified_ticket_ids = Array.new
 error_count = 0
 count = 1
 data = nil
-TARGET_TICKET_FORM_ID = 613727
-REA_FROM_FIELD_ID = 79932888
-REA_TO_FIELD_ID = 79932908
-CUSTOM_TAG = "api_edit_on_propertyid_by_amy_at_zendesk"
+# thereAreNulls = [undefined, null, nil, '', '-']
+thereAreNulls = [nil, '', '-']
+
+
+# TARGET_TICKET_FORM_ID = 613727
+# REA_FROM_FIELD_ID = 79932888
+# REA_TO_FIELD_ID = 79932908
+# CUSTOM_TAG = "api_edit_on_propertyid_by_amy_at_zendesk"
+
+
+# Technical (internal) = 593408
+# Fraud (INTERNAL) = 203783
+
+TARGET_TICKET_FORM_ID = 593408
+REA_FROM_FIELD_ID = 65047748
+REA_TO_FIELD_ID = 25092683
+CUSTOM_TAG = "movingpropidfield"
+
 
 # ignore_types = ['subject', 'tickettype', 'description', 'group', 'status', 'assignee', 'priority']
 
@@ -27,7 +41,10 @@ begin
   # puts "******** count is #{count} *********"
   # puts "\n"
 
-  c = Curl::Easy.new ("https://#{SUBDOMAIN}.zendesk.com/api/v2/tickets.json?page=#{count}")
+  # c = Curl::Easy.new ("https://#{SUBDOMAIN}.zendesk.com/api/v2/tickets.json?page=#{count}")
+  # search.json?query=type:ticket+ticket_form_id:593408+status:open
+  # https://reasupport.zendesk.com/api/v2/search.json?page=2&query=type%3Aticket+ticket_form_id%3A593408
+  c = Curl::Easy.new ("https://#{SUBDOMAIN}.zendesk.com/api/v2/search.json?page=#{count}&query=type:ticket+ticket_form_id:#{TARGET_TICKET_FORM_ID}+status:open")
   c.http_auth_types = :basic
   c.username = EMAIL
   c.password = PASSWORD
@@ -40,7 +57,8 @@ begin
   results = JSON.parse (c.body_str)
 
   # now grab an array of tickets
-  ticket_list = results["tickets"]
+  # ticket_list = results["tickets"]
+  ticket_list = results["results"]
 
   # within each item in ticket_list, it's a hash, so look for ticket IDs
   ticket_list.each do |t|
@@ -63,7 +81,7 @@ begin
         # only push tickets of interest into array i.e.
         # where ticket field for "rea_from_field" isn't empty
         # where custom tag doesn't already exist
-        if ( (ct.rea_from_field != nil) && !(ct.tags.include? CUSTOM_TAG) )
+        if ( !(thereAreNulls.include? ct.rea_from_field) && !(ct.tags.include? CUSTOM_TAG) )
           custom_tickets << ct
         end
 
@@ -97,7 +115,7 @@ count = 1
 # set up copying
 custom_tickets.each do |ct|
 
-  data = "{\"ticket\": {\"tags\":[\"api_edit_on_propertyid_by_amy_at_zendesk\""
+  data = "{\"ticket\": {\"tags\":[\"#{CUSTOM_TAG}\""
 
   ct.tags.each do |t|
     data << ",\"#{t}\""
