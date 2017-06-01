@@ -44,7 +44,7 @@ begin
   # c = Curl::Easy.new ("https://#{SUBDOMAIN}.zendesk.com/api/v2/tickets.json?page=#{count}")
   # search.json?query=type:ticket+ticket_form_id:593408+status:open
   # https://reasupport.zendesk.com/api/v2/search.json?page=2&query=type%3Aticket+ticket_form_id%3A593408
-  c = Curl::Easy.new ("https://#{SUBDOMAIN}.zendesk.com/api/v2/search.json?page=#{count}&query=type:ticket+ticket_form_id:#{TARGET_TICKET_FORM_ID}+status:open")
+  c = Curl::Easy.new ("https://#{SUBDOMAIN}.zendesk.com/api/v2/search.json?page=#{count}&query=type:ticket+ticket_form_id:#{TARGET_TICKET_FORM_ID}+status:pending")
   c.http_auth_types = :basic
   c.username = EMAIL
   c.password = PASSWORD
